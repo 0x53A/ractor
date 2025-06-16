@@ -20,8 +20,8 @@ pub type Duration = std::time::Duration;
 pub type Instant = web_time::Instant;
 
 /// Sleep the task for a duration of time
-pub async fn sleep(dur: Duration) {
-    tokio::time::sleep(dur).await;
+pub fn sleep(dur: Duration) -> impl Future<Output = ()> + Send {
+    async move { let _ = wrap_future_as_send(tokio::time::sleep(dur)).await; }
 }
 
 /// An asynchronous interval calculation which waits until
