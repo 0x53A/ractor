@@ -57,6 +57,7 @@ tokio_with_wasm = { version = "0.8.2", features = [
     "rt",
     "time",
 ] }
+wasm-bindgen-futures = "0.4.50"
 web-time = "1.1.0"
 
 [dev-dependencies]

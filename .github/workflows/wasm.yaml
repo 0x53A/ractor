@@ -30,8 +30,17 @@ jobs:
         run: |
           cd ./.github/wasm-test-runner
           npm install
+          
       - name: Run tests
         run: |
           export WORKING_DIR=$(pwd)
           cd ./.github/wasm-test-runner
-          node ./index.js     
+          node ./index.js
+          
+      - name: Run tests (features async trait)
+        env:
+          FEATURES_ASYNC_TRAIT: "true"
+        run: |
+          export WORKING_DIR=$(pwd)
+          cd ./.github/wasm-test-runner
+          node ./index.js
