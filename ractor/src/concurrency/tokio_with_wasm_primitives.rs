@@ -106,7 +106,7 @@ where
     T: Send + 'static,
 {
     let (tx, rx) = crate::concurrency::oneshot();
-    wasm_bindgen_futures::spawn_local(async move {
+    tokio_with_wasm::spawn_local(async move {
         let result = f.await;
         let _ = tx.send(result); // note: failures here are ignored, the most likely reason would be a dropped receiver
     });
