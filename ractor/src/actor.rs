@@ -377,8 +377,7 @@ pub trait Actor: Sized + Sync + Send + 'static {
         name: Option<ActorName>,
         handler: Self,
         startup_args: Self::Arguments,
-    ) -> impl Future<Output = Result<(ActorRef<Self::Msg>, JoinHandle<()>), SpawnErr>> + Send
-    {
+    ) -> impl Future<Output = Result<(ActorRef<Self::Msg>, JoinHandle<()>), SpawnErr>> + Send {
         ActorRuntime::<Self>::spawn(name, handler, startup_args)
     }
     /// Spawn an actor of this type, which is unsupervised, automatically starting
@@ -417,8 +416,7 @@ pub trait Actor: Sized + Sync + Send + 'static {
         handler: Self,
         startup_args: Self::Arguments,
         supervisor: ActorCell,
-    ) -> impl Future<Output = Result<(ActorRef<Self::Msg>, JoinHandle<()>), SpawnErr>> + Send
-    {
+    ) -> impl Future<Output = Result<(ActorRef<Self::Msg>, JoinHandle<()>), SpawnErr>> + Send {
         ActorRuntime::<Self>::spawn_linked(name, handler, startup_args, supervisor)
     }
     /// Spawn an actor of this type with a supervisor, automatically starting the actor

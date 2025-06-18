@@ -333,7 +333,7 @@ where
     ) -> Result<CallResult<TReply>, MessagingErr<TMessage>>
     where
         TMsgBuilder: FnOnce(RpcReplyPort<TReply>) -> TMessage,
-    TReply: Send + 'static,
+        TReply: Send + 'static,
     {
         call::<TMessage, TReply, TMsgBuilder>(&self.inner, msg_builder, timeout_option).await
     }

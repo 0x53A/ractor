@@ -1364,23 +1364,20 @@ async fn derived_actor_ref() {
     }
 }
 
-
 #[crate::concurrency::test]
 #[cfg_attr(
     not(all(target_arch = "wasm32", target_os = "unknown")),
     tracing_test::traced_test
 )]
 async fn can_use_call_in_actor() {
-
     enum TestActorMessage {
-        Call(crate::RpcReplyPort<u32>)
+        Call(crate::RpcReplyPort<u32>),
     }
 
     #[cfg(feature = "cluster")]
     impl crate::Message for TestActorMessage {}
 
     struct TestActor1;
-    
 
     struct TestActor2;
 
@@ -1407,7 +1404,6 @@ async fn can_use_call_in_actor() {
             message: Self::Msg,
             state: &mut Self::State,
         ) -> Result<(), ActorProcessingErr> {
-
             match message {
                 TestActorMessage::Call(reply_port) => {
                     let result = crate::call!(state, TestActorMessage::Call)?;
@@ -1418,7 +1414,6 @@ async fn can_use_call_in_actor() {
             Ok(())
         }
     }
-    
 
     #[cfg_attr(feature = "async-trait", crate::async_trait)]
     impl Actor for TestActor2 {
@@ -1440,7 +1435,6 @@ async fn can_use_call_in_actor() {
             message: Self::Msg,
             _state: &mut Self::State,
         ) -> Result<(), ActorProcessingErr> {
-
             match message {
                 TestActorMessage::Call(reply_port) => {
                     reply_port.send(42).expect("Failed to send response");
@@ -1451,13 +1445,12 @@ async fn can_use_call_in_actor() {
         }
     }
 
-
     // spawn the first actor, which will internally spawn the second actor
-    let (actor1, _) = Actor::spawn(None, TestActor1, ()).await.expect("Failed to spawn actor");
-    
-    let result = crate::call!(actor1, TestActorMessage::Call)
-        .expect("Failed to call actor");
+    let (actor1, _) = Actor::spawn(None, TestActor1, ())
+        .await
+        .expect("Failed to spawn actor");
+
+    let result = crate::call!(actor1, TestActorMessage::Call).expect("Failed to call actor");
 
     assert!(result == 42);
-
 }
