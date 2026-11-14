@@ -59,7 +59,7 @@ mod util {
         T: Send + 'static,
     {
         let (tx, rx) = crate::concurrency::oneshot();
-        tokio_with_wasm::spawn_local(async move {
+        wasm_bindgen_futures::spawn_local(async move {
             let result = f.await;
             let _ = tx.send(result); // note: failures here are ignored, the most likely reason would be a dropped receiver
         });
@@ -178,9 +178,9 @@ pub(super) fn interval(period: Duration) -> Interval {
     let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
     let period_ms = period.as_millis() as f64;
     // Create a closure that sends a tick via the channel.
-    let closure = Closure::wrap(Box::new(move || {
+    let closure = Closure::<dyn Fn()>::new(move || {
         let _ = tx.send(());
-    }) as Box<dyn Fn()>);
+    });
     // Register an interval with the closure.
     let interval_id = set_interval(closure.as_ref().unchecked_ref(), period_ms);
     // Release memory management of this closure from Rust to the JS GC.
@@ -220,9 +220,9 @@ impl Interval {
         self.rx = rx;
         let period_ms = self.period.as_millis() as f64;
         // Set up a new interval.
-        let closure = Closure::wrap(Box::new(move || {
+        let closure = Closure::<dyn Fn()>::new(move || {
             let _ = tx.send(());
-        }) as Box<dyn Fn()>);
+        });
         self.interval_id = set_interval(closure.as_ref().unchecked_ref(), period_ms);
         // Release memory management of this closure from Rust to the JS GC.
         closure.forget();

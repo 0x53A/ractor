@@ -1,6 +1,22 @@
 # Steps to run unit tests for target `wasm32-unknown-unknown`
 
-`ractor` is supposed to support wasm32-unknown-unknown in browser, but unit-tests can't be executed in CI due to some known issues (see https://github.com/rustwasm/wasm-pack/issues/1424 ). Here are steps to run unit-tests manually.
+Browser tasks use Tokio's `LocalSet`, driven by `wasm-bindgen-futures`; timers
+still use browser APIs. Task handles and join errors are now Tokio types.
+The former browser `JoinSet::spawn_blocking` requires application-managed workers.
+
+The default panic strategy is abort. Panic-recovery tests use `cfg(panic = "unwind")`.
+CI runs them in Firefox on nightly, with and without `async-trait`. To run locally
+with wasm-pack 0.15.0 or newer:
+
+```sh
+rustup toolchain install nightly --profile minimal --component rust-src --target wasm32-unknown-unknown
+WASM_BINDGEN_TEST_TIMEOUT=300 RUSTUP_TOOLCHAIN=nightly \
+  RUSTFLAGS='-Cpanic=unwind -Cllvm-args=-wasm-use-legacy-eh=false' \
+  wasm-pack test --headless --firefox ./ractor --lib --features cluster -Zbuild-std=std,panic_unwind
+```
+
+This rebuilds the standard library for unwinding and requires a browser supporting
+standardized WASM exceptions. Add `async-trait` to test that feature too.
 
 ## Install dependencies
 

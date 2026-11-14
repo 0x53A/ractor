@@ -95,3 +95,14 @@ mod target_specific {
 }
 
 pub(crate) use target_specific::SystemTime;
+
+// Tokio task semantics should be identical whether driven by a native runtime
+// or by the browser's LocalSet.
+#[cfg(all(
+    test,
+    any(
+        not(feature = "async-std"),
+        all(target_arch = "wasm32", target_os = "unknown")
+    )
+))]
+mod task_tests;

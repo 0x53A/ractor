@@ -32,7 +32,7 @@ fn get_spawner() -> ThreadLocalActorSpawner {
     not(all(target_arch = "wasm32", target_os = "unknown")),
     tracing_test::traced_test
 )]
-#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
+#[cfg(panic = "unwind")]
 async fn test_thread_local_child() {
     use crate::thread_local::ThreadLocalActor;
 
@@ -221,7 +221,7 @@ async fn test_thread_local_supervisor() {
     not(all(target_arch = "wasm32", target_os = "unknown")),
     tracing_test::traced_test
 )]
-#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
+#[cfg(panic = "unwind")]
 async fn test_thread_local_child_panic_handle() {
     #[derive(Default)]
     struct Child;

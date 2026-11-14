@@ -5,7 +5,6 @@
 
 //! Supervisor tests
 
-use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::AtomicU8;
 use std::sync::atomic::Ordering;
@@ -16,7 +15,6 @@ use crate::message::BoxedDowncastErr;
 use crate::periodic_check;
 use crate::Actor;
 use crate::ActorCell;
-use crate::ActorId;
 use crate::ActorProcessingErr;
 use crate::ActorRef;
 use crate::ActorStatus;
@@ -27,8 +25,11 @@ use crate::SupervisionEvent;
     not(all(target_arch = "wasm32", target_os = "unknown")),
     tracing_test::traced_test
 )]
-#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
+#[cfg(panic = "unwind")]
 async fn test_supervision_panic_in_post_startup() {
+    use std::sync::atomic::AtomicBool;
+
+    use crate::ActorId;
     struct Child {
         supervisor_id: ActorId,
         linked_to_supervisor: Arc<AtomicBool>,
@@ -224,7 +225,7 @@ async fn test_supervision_error_in_post_startup() {
     not(all(target_arch = "wasm32", target_os = "unknown")),
     tracing_test::traced_test
 )]
-#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
+#[cfg(panic = "unwind")]
 async fn test_supervision_panic_in_handle() {
     struct Child;
     struct Supervisor {
@@ -423,7 +424,7 @@ async fn test_supervision_error_in_handle() {
     not(all(target_arch = "wasm32", target_os = "unknown")),
     tracing_test::traced_test
 )]
-#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
+#[cfg(panic = "unwind")]
 async fn test_supervision_panic_in_post_stop() {
     struct Child;
     struct Supervisor {
@@ -592,7 +593,7 @@ async fn test_supervision_error_in_post_stop() {
     not(all(target_arch = "wasm32", target_os = "unknown")),
     tracing_test::traced_test
 )]
-#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
+#[cfg(panic = "unwind")]
 async fn test_supervision_panic_in_supervisor_handle() {
     struct Child;
     struct Midpoint;
@@ -1358,8 +1359,7 @@ async fn test_supervisor_double_link() {
     not(all(target_arch = "wasm32", target_os = "unknown")),
     tracing_test::traced_test
 )]
-// Ignored on wasm32-unknown-unknown, since panic can't be catched on this platform
-#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
+#[cfg(panic = "unwind")]
 async fn test_supervisor_exit_doesnt_call_child_post_stop() {
     struct Child {
         post_stop_calls: Arc<AtomicU8>,

@@ -442,99 +442,71 @@ impl Default for ThreadLocalActorSpawner {
 // note: it's not great that we have multiple implementations depending on the async backend in here
 // - ideally this would be moved to ./concurrency/*
 impl ThreadLocalActorSpawner {
-    #[cfg(all(not(feature = "async-std"), not(target_arch = "wasm32")))]
-    /// Create a new [ThreadLocalActorSpawner] on the current thread.
+    /// Create a new [ThreadLocalActorSpawner].
+    ///
+    /// Native backends use a dedicated thread; the browser backend uses its
+    /// current JavaScript executor. Actor futures are constructed on that executor.
     pub fn new() -> Self {
-        let (send, mut recv) = crate::concurrency::mpsc_unbounded();
+        let (send, recv) = crate::concurrency::mpsc_unbounded();
 
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
+        #[cfg(all(not(feature = "async-std"), not(target_arch = "wasm32")))]
+        {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap();
 
-        std::thread::spawn(move || {
-            let local = tokio::task::LocalSet::new();
+            std::thread::spawn(move || {
+                let local = tokio::task::LocalSet::new();
 
-            // TODO (seanlawlor): Support named spawn
-            local.spawn_local(async move {
-                while let Some(SpawnArgs {
-                    builder,
-                    reply,
-                    name,
-                }) = recv.recv().await
-                {
-                    let fut = builder();
-                    #[cfg(tokio_unstable)]
-                    {
-                        let handle = tokio::task::Builder::new()
-                            .name(name.unwrap_or_default().as_str())
-                            .spawn_local(fut)
-                            .expect("Tokio task spawn failed");
-                        _ = reply.send(AbortOnDropHandle::new(handle));
-                    }
-                    #[cfg(not(tokio_unstable))]
-                    {
-                        _ = name;
-                        let handle = crate::concurrency::spawn_local(fut);
-                        _ = reply.send(AbortOnDropHandle::new(handle));
-                    }
-                }
-                // If the while loop returns, then all the LocalSpawner
-                // objects have been dropped.
+                local.spawn_local(Self::run(recv));
+
+                // This will return once all senders are dropped and all
+                // spawned tasks have returned.
+                rt.block_on(local);
             });
+        }
 
-            // This will return once all senders are dropped and all
-            // spawned tasks have returned.
-            rt.block_on(local);
-        });
-
-        Self { send }
-    }
-
-    #[cfg(all(feature = "async-std", not(target_arch = "wasm32")))]
-    /// Create a new [ThreadLocalActorSpawner] on the current thread.
-    pub fn new() -> Self {
-        let (send, mut recv) = crate::concurrency::mpsc_unbounded();
-
+        #[cfg(all(feature = "async-std", not(target_arch = "wasm32")))]
         std::thread::spawn(move || {
-            // TODO (seanlawlor): Support named spawn
-            async_std::task::block_on(async_std::task::spawn_local(async move {
-                while let Some(SpawnArgs {
-                    builder,
-                    reply,
-                    name,
-                }) = recv.recv().await
-                {
-                    let fut = builder();
-                    _ = name;
-                    let handle = crate::concurrency::spawn_local(fut);
-                    _ = reply.send(AbortOnDropHandle::new(handle));
-                }
-            }));
+            async_std::task::block_on(async_std::task::spawn_local(Self::run(recv)));
         });
+
+        #[cfg(target_arch = "wasm32")]
+        crate::concurrency::spawn_local(Self::run(recv));
 
         Self { send }
     }
 
-    #[cfg(target_arch = "wasm32")]
-    /// Create a new [ThreadLocalActorSpawner] on the current thread.
-    pub fn new() -> Self {
-        let (send, mut recv) = crate::concurrency::mpsc_unbounded();
-
-        crate::concurrency::spawn_local(async move {
-            while let Some(SpawnArgs {
-                builder,
-                reply,
-                name: _name,
-            }) = recv.recv().await
-            {
-                let fut = builder();
-                let handle = crate::concurrency::spawn_local(fut);
-                _ = reply.send(AbortOnDropHandle::new(handle));
-            }
-        });
-
-        Self { send }
+    async fn run(mut recv: crate::concurrency::MpscUnboundedReceiver<SpawnArgs>) {
+        while let Some(SpawnArgs {
+            builder,
+            reply,
+            name,
+        }) = recv.recv().await
+        {
+            // Construct the !Send future on the executor's thread.
+            let fut = builder();
+            #[cfg(all(
+                tokio_unstable,
+                not(feature = "async-std"),
+                not(target_arch = "wasm32")
+            ))]
+            let handle = tokio::task::Builder::new()
+                .name(name.unwrap_or_default().as_str())
+                .spawn_local(fut)
+                .expect("Tokio task spawn failed");
+            #[cfg(not(all(
+                tokio_unstable,
+                not(feature = "async-std"),
+                not(target_arch = "wasm32")
+            )))]
+            let handle = {
+                let _ = name;
+                crate::concurrency::spawn_local(fut)
+            };
+            _ = reply.send(AbortOnDropHandle::new(handle));
+        }
     }
 
     #[allow(clippy::type_complexity)]

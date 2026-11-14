@@ -269,6 +269,8 @@ impl ActorProperties {
 
     pub(crate) fn drain(&self) -> Result<(), MessagingErr<()>> {
         self.close_message_admission();
+        // Keep the Rust 1.85 MSRV; the replacement `try_update` is newer.
+        #[allow(deprecated)]
         let _ = self
             .status
             .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |f| {

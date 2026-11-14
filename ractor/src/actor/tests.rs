@@ -5,8 +5,6 @@
 
 //! General tests, more logic-specific tests are contained in sub-modules
 
-#[cfg(feature = "cluster")]
-use std::sync::atomic::AtomicBool;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::AtomicU8;
 use std::sync::atomic::Ordering;
@@ -118,7 +116,7 @@ fn concurrent_shutdown_transitions_elect_cleanup_once() {
     not(all(target_arch = "wasm32", target_os = "unknown")),
     tracing_test::traced_test
 )]
-#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
+#[cfg(panic = "unwind")]
 async fn test_panic_on_start_captured() {
     #[derive(Default)]
     struct TestActor;
@@ -651,7 +649,12 @@ async fn serialized_decode_failures_do_not_terminate_the_actor() {
         .await
         .unwrap();
 
-    for variant in ["error", "panic", "valid"] {
+    for variant in [
+        "error",
+        #[cfg(panic = "unwind")]
+        "panic",
+        "valid",
+    ] {
         actor
             .send_serialized(SerializedMessage::Cast {
                 variant: variant.to_string(),
@@ -1559,6 +1562,7 @@ async fn drain_defers_marker_for_reentrant_admitted_send() {
     use crate::concurrency::{oneshot, OneshotReceiver, OneshotSender};
     use crate::message::{BoxedDowncastErr, BoxedMessage, SerializedMessage};
     use crate::Message;
+    use std::sync::atomic::AtomicBool;
 
     enum TestMessage {
         Hold {

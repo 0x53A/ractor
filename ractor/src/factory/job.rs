@@ -205,7 +205,7 @@ impl BytesConvertable for JobOptions {
     fn into_bytes(self) -> Vec<u8> {
         let submit_time = (self
             .submit_time
-            .duration_since(std::time::UNIX_EPOCH)
+            .duration_since(SystemTime::UNIX_EPOCH)
             .expect("Time went backwards")
             .as_nanos() as u64)
             .to_be_bytes();
@@ -239,7 +239,7 @@ impl BytesConvertable for JobOptions {
                 None
             };
             let mut options = Self {
-                submit_time: std::time::UNIX_EPOCH + Duration::from_nanos(submit_time),
+                submit_time: SystemTime::UNIX_EPOCH + Duration::from_nanos(submit_time),
                 ttl,
                 ttl_timer: None,
                 span: None,

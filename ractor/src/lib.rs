@@ -120,8 +120,11 @@
 //!
 //! Actors in `ractor` also support supervision. This is done by "linking" actors together in a supervisor-child relationship.
 //! A supervisor is responsible for the life cycle of the child actor, and as such is notified when the actor starts,
-//! stops, and fails (panics). If you set `panic = 'abort'` in your `Cargo.toml`, panics **will** start cause program termination
-//! and not be caught in the supervision flow.
+//! stops, and fails (panics). Panic recovery requires `panic = "unwind"`. With `panic = "abort"`,
+//! panics terminate execution and are not caught in the supervision flow.
+//! This also applies to WebAssembly: `wasm32-unknown-unknown` defaults to aborting, but can be
+//! built with unwinding by rebuilding the standard library with nightly Cargo's `-Zbuild-std`.
+//! See the [Rust target documentation](https://doc.rust-lang.org/rustc/platform-support/wasm32-unknown-unknown.html#unwinding).
 //!
 //! Supervision is presently left to the implementor to outline handling of supervision events, but you can see a suite of
 //! supervision tests in `crate::actor::tests::supervisor` for examples on the supported functionality.

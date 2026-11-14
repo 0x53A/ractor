@@ -7,6 +7,28 @@ on:
     types: [opened, reopened, synchronize]
 
 jobs:
+  unit-test-unwind:
+    name: Run browser tests with panic unwinding
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        features: [cluster, "cluster,async-trait"]
+    steps:
+      - uses: actions/checkout@main
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
+          targets: wasm32-unknown-unknown
+      - uses: browser-actions/setup-firefox@v1
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --version 0.15.0 --locked
+      - name: Run tests including panic supervision and decoder recovery
+        env:
+          RUSTUP_TOOLCHAIN: nightly
+          RUSTFLAGS: -Cpanic=unwind -Cllvm-args=-wasm-use-legacy-eh=false
+          WASM_BINDGEN_TEST_TIMEOUT: 300
+        run: wasm-pack test --headless --firefox ./ractor --lib --features "${{ matrix.features }}" -Zbuild-std=std,panic_unwind
+
   unit-test:
     name: Run unit tests in browser
     runs-on: ubuntu-latest

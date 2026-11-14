@@ -195,7 +195,6 @@ impl RateLimiter for LeakyBucketRateLimiter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::concurrency::sleep;
     use crate::factory::discard::WorkerDiscardSettings;
     use crate::factory::routing::QueuerRouting;
     use crate::factory::WorkerMessage;
@@ -282,13 +281,16 @@ mod tests {
         limiter.bump();
         assert!(!limiter.check());
 
-        sleep(limiter.interval * 2).await;
+        // Advance exactly two refill periods. Browser timers can fire late,
+        // which would legitimately refill more tokens than this test expects.
+        let deadline = limiter.deadline.unwrap();
+        limiter.refresh(deadline + limiter.interval);
 
-        assert!(limiter.check());
+        assert_eq!(limiter.balance, 2);
         limiter.bump();
-        assert!(limiter.check());
+        assert_eq!(limiter.balance, 1);
         limiter.bump();
-        assert!(!limiter.check());
+        assert_eq!(limiter.balance, 0);
     }
 
     #[crate::concurrency::test]
@@ -304,11 +306,12 @@ mod tests {
         limiter.bump();
         assert!(!limiter.check());
 
-        sleep(limiter.interval * 2).await;
+        let deadline = limiter.deadline.unwrap();
+        limiter.refresh(deadline + limiter.interval);
 
-        assert!(limiter.check());
+        assert_eq!(limiter.balance, 1);
         limiter.bump();
-        assert!(!limiter.check());
+        assert_eq!(limiter.balance, 0);
     }
 
     #[test]

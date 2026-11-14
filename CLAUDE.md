@@ -239,6 +239,7 @@ Default features: `tokio_runtime`, `message_span_propogation`
 - MSRV: Rust 1.85
 - Thread-local actors REQUIRE tokio runtime with `rt` feature
 - WASM support available (target `wasm32-unknown-unknown`)
+- Browser tasks run on a Tokio `LocalSet` driven by `wasm-bindgen-futures`; browser timers remain separate from Tokio's native time driver.
 
 ## Testing
 
@@ -247,6 +248,8 @@ Default features: `tokio_runtime`, `message_span_propogation`
 - Unit tests: `#[cfg(test)] mod tests` within each module
 - Integration tests: `ractor_cluster_integration_tests/` crate
 - Some tests require `serial_test` crate for sequential execution
+- Gate tests that deliberately recover panics with `#[cfg(panic = "unwind")]`, not a native/WASM target check.
+- Browser panic recovery requires nightly and a rebuilt standard library; see `unit-tests-for-wasm32-unknown-unknown.md`.
 
 ### Test Utilities
 
